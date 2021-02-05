@@ -12,7 +12,6 @@ import os
 import re
 
 
-os.remove('log.txt')
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
