@@ -12,7 +12,7 @@ import os
 import re
 
 if os.path.exists('log.txt'):
-os.remove('log.txt')
+    os.remove('log.txt')
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
