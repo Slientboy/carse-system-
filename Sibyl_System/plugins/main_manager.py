@@ -52,13 +52,13 @@ async def scan(event):
         if not message:
             await event.reply("Failed to get data from url")
             return
-        if message.from_id.user_id in ENFORCERS:
+        if message.sender_id in ENFORCERS:
             return
         msg = await System.send_message(
             Sibyl_logs,
             scan_request_string.format(
                 enforcer=executor,
-                spammer=message.from_id.user_id,
+                spammer=message.sender_id,
                 chat=f"https://t.me/{data[0]}/{data[1]}",
                 message=message.text,
                 reason=reason.split(" ", 1)[1].strip(),
@@ -70,16 +70,16 @@ async def scan(event):
     if "o" in flags.keys():
         if replied.fwd_from:
             reply = replied.fwd_from
-            target = reply.from_id.user_id
-            if reply.from_id.user_id in ENFORCERS or reply.from_id.user_id in SIBYL:
+            target = reply.sender_id
+            if reply.sender_id in ENFORCERS or reply.sender_id in SIBYL:
                 return
-            if not reply.from_id.user_id:
+            if not reply.sender_id:
                 await event.reply("Cannot get user ID.")
                 return
             if reply.from_name:
-                sender = f"[{reply.from_name}](tg://user?id={reply.from_id.user_id})"
+                sender = f"[{reply.from_name}](tg://user?id={reply.sender_id})"
             else:
-                sender = f"[{reply.from_id.user_id}](tg://user?id={reply.from_id.user_id})"
+                sender = f"[{reply.sender_id}](tg://user?id={reply.sender_id})"
     else:
         if replied.sender.id in ENFORCERS:
             return
@@ -139,7 +139,7 @@ async def revive(event):
     await a.edit("Revert request sent to sibyl. This might take 10minutes or so.")
 
 
-@System.on(system_cmd(pattern=r"sibyl logs"))
+@System.on(system_cmd(pattern=r"logs"))
 async def logs(event):
     await System.send_file(event.chat_id, "log.txt")
 
@@ -237,7 +237,7 @@ async def reject(event):
     # print('Trying OmO')
     replied = await event.get_reply_message()
     me = await System.get_me()
-    if replied.from_id.user_id == me.id:
+    if replied.sender_id == me.id:
         # print('Matching UwU')
         match = re.match(r"\$(SCAN|AUTO(SCAN)?)", replied.text)
         if match:
