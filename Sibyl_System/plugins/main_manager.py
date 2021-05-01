@@ -1,107 +1,149 @@
 from Sibyl_System import Sibyl_logs, ENFORCERS, SIBYL, INSPECTORS
-from Sibyl_System.strings import scan_request_string, reject_string, proof_string, forced_scan_string
+from Sibyl_System.strings import (
+    scan_request_string,
+    reject_string,
+    proof_string,
+    forced_scan_string,
+)
 from Sibyl_System import System, system_cmd
 from Sibyl_System.utils import seprate_flags
 
 import re
 
 
+url_regex = re.compile("(http(s)?://)?t.me/(c/)?(\w+)/(\d+)")
 
-url_regex = re.compile('(http(s)?://)?t.me/(c/)?(\w+)/(\d+)')
 
 def get_data_from_url(url: str) -> tuple:
-      """
-      >>> get_data_from_url("https://t.me/c/1476401326/36963")
-      (1476401326, 36963)
-      """
+    """
+    >>> get_data_from_url("https://t.me/c/1476401326/36963")
+    (1476401326, 36963)
+    """
 
-      match = url_regex.match(url)
-      if not match:
+    match = url_regex.match(url)
+    if not match:
         return False
-      return (match.group(4), match.group(5))
-      
+    return (match.group(4), match.group(5))
 
 
-@System.on(system_cmd(pattern=r'scan ', allow_enforcer = True, force_reply=True))
+@System.on(system_cmd(pattern=r"scan ", allow_enforcer=True))
 async def scan(event):
-        replied = await event.get_reply_message()
-        flags, reason = seprate_flags(event.text)
-        if len(reason.split(" ", 1)) == 1:
-          return
-        split = reason.strip().split(" ", 1)
-        reason = reason.strip().split(" ", 1)[1]
-        if 'u' in flags.keys():
-           url = reason
-           data = get_data_from_url(url.strip())
-           if not data:
-              await event.reply('Invalid url')
-              return
-           try:
-              message = await System.get_messages(int(data[0]) if data[0].isnumeric() else data[0], ids = int(data[1]))
-           except:
-              await event.reply('Failed to get data from url')
-              return
-           executor = await event.get_sender()
-           executor = f'[{executor.first_name}](tg://user?id={executor.id})'
-           if not message:
-              await event.reply('Failed to get data from url')
-              return
-           if message.from_id in ENFORCERS:
-              return
-           msg = await System.send_message(Sibyl_logs, scan_request_string.format(enforcer=executor, spammer=message.from_id, chat=f"https://t.me/{data[0]}/{data[1]}" , message=message.text, reason=split[1].strip().split(' ')[1]))
-           return
-        if not event.is_reply:
-          return
-        if 'o' in flags.keys():
-            if replied.fwd_from:
-                reply = replied.fwd_from
-                target = reply.from_id
-                if reply.from_id in ENFORCERS or reply.from_id in SIBYL:
-                    return
-                if not reply.from_id:
-                    await event.reply("Cannot get user ID.")
-                    return
-                if reply.from_name:
-                    sender = f"[{reply.from_name}](tg://user?id={reply.from_id})"
-                else:
-                    sender = f"[{reply.from_id}](tg://user?id={reply.from_id})"
-        else:
-            if replied.sender.id in ENFORCERS:
+    replied = await event.get_reply_message()
+    flags, reason = seprate_flags(event.text)
+    if len(reason.split(" ", 1)) == 1:
+        return
+    split = reason.strip().split(" ", 1)
+    reason = reason.strip().split(" ", 1)[1].strip()
+    if "u" in flags.keys():
+        url = reason
+        data = get_data_from_url(url)
+        if not data:
+            await event.reply("Invalid url")
+            return
+        try:
+            message = await System.get_messages(
+                int(data[0]) if data[0].isnumeric() else data[0], ids=int(data[1])
+            )
+        except:
+            await event.reply("Failed to get data from url")
+            return
+        executor = await event.get_sender()
+        executor = f"[{executor.first_name}](tg://user?id={executor.id})"
+        if not message:
+            await event.reply("Failed to get data from url")
+            return
+        if message.from_id.user_id in ENFORCERS:
+            return
+        msg = await System.send_message(
+            Sibyl_logs,
+            scan_request_string.format(
+                enforcer=executor,
+                spammer=message.from_id.user_id,
+                chat=f"https://t.me/{data[0]}/{data[1]}",
+                message=message.text,
+                reason=reason.split(" ", 1)[1].strip(),
+            ),
+        )
+        return
+    if not event.is_reply:
+        return
+    if "o" in flags.keys():
+        if replied.fwd_from:
+            reply = replied.fwd_from
+            target = reply.from_id.user_id
+            if reply.from_id.user_id in ENFORCERS or reply.from_id.user_id in SIBYL:
                 return
-            sender = f"[{replied.sender.first_name}](tg://user?id={replied.sender.id})"
-            target = replied.sender.id
-        executer = await event.get_sender()
-        req_proof = req_user = False
-        if 'f' in flags.keys() and executer.id in INSPECTORS:
-             approve = True
-        else:
-             approve = False
-        if replied.media:
-            await replied.forward_to(Sibyl_logs)
-        executor = f'[{executer.first_name}](tg://user?id={executer.id})'
-        chat = f"t.me/{event.chat.username}/{event.message.id}" if event.chat.username else f"t.me/c/{event.chat.id}/{event.message.id}"
-        await event.reply("Connecting to Sibyl for a cymatic scan.")
-        if req_proof and req_user:
-           await replied.forward_to(Sibyl_logs)
-           await System.gban(executer.id, req_user, reason, msg.id, executer)
-        if not approve:
-           msg = await System.send_message(Sibyl_logs, scan_request_string.format(enforcer=executor, spammer=sender, chat=chat , message=replied.text, reason=reason))
-           return
-        msg = await System.send_message(Sibyl_logs, forced_scan_string.format(ins = executor, spammer=sender, chat=chat,message=replied.text, reason=reason))
-        await System.gban(executer.id, target, reason, msg.id, executer)
+            if not reply.from_id.user_id:
+                await event.reply("Cannot get user ID.")
+                return
+            if reply.from_name:
+                sender = f"[{reply.from_name}](tg://user?id={reply.from_id.user_id})"
+            else:
+                sender = f"[{reply.from_id.user_id}](tg://user?id={reply.from_id.user_id})"
+    else:
+        if replied.sender.id in ENFORCERS:
+            return
+        sender = f"[{replied.sender.first_name}](tg://user?id={replied.sender.id})"
+        target = replied.sender.id
+    executer = await event.get_sender()
+    req_proof = req_user = False
+    if "f" in flags.keys() and executer.id in INSPECTORS:
+        approve = True
+    else:
+        approve = False
+    if replied.media:
+        await replied.forward_to(Sibyl_logs)
+    executor = f"[{executer.first_name}](tg://user?id={executer.id})"
+    chat = (
+        f"t.me/{event.chat.username}/{event.message.id}"
+        if event.chat.username
+        else f"t.me/c/{event.chat.id}/{event.message.id}"
+    )
+    await event.reply("Connecting to Sibyl for a cymatic scan.")
+    if req_proof and req_user:
+        await replied.forward_to(Sibyl_logs)
+        await System.gban(
+            executer.id, req_user, reason, msg.id, executer, message=replied.text
+        )
+    if not approve:
+        msg = await System.send_message(
+            Sibyl_logs,
+            scan_request_string.format(
+                enforcer=executor,
+                spammer=sender,
+                chat=chat,
+                message=replied.text,
+                reason=reason,
+            ),
+        )
+        return
+    msg = await System.send_message(
+        Sibyl_logs,
+        forced_scan_string.format(
+            ins=executor, spammer=sender, chat=chat, message=replied.text, reason=reason
+        ),
+    )
+    await System.gban(
+        executer.id, target, reason, msg.id, executer, message=replied.text
+    )
 
-@System.on(system_cmd(pattern=r're(vive|vert|store) '))
+
+@System.on(system_cmd(pattern=r"re(vive|vert|store) ", allow_inspectors=True))
 async def revive(event):
-   try:
-     user_id = event.text.split(" ", 1)[1]
-   except IndexError: return
-   a = await event.reply("Reverting bans..")
-   await System.ungban(user_id, f" By //{(await event.get_sender()).id}")
-   await a.edit("Revert request sent to sibyl. This might take 10minutes or so.")
+    try:
+        user_id = event.text.split(" ", 1)[1]
+    except IndexError:
+        return
+    a = await event.reply("Reverting bans..")
+    await System.ungban(user_id, f" By //{(await event.get_sender()).id}")
+    await a.edit("Revert request sent to sibyl. This might take 10minutes or so.")
 
-@System.on(system_cmd(pattern=r"logs"))
+
+@System.on(system_cmd(pattern=r"sibyl logs"))
 async def logs(event):
-         await System.send_file(event.chat_id, 'log.txt')
+    await System.send_file(event.chat_id, "log.txt")
+        )
+
 
 @System.on(system_cmd(pattern=r'approve', allow_inspectors=True, force_reply = True))
 async def approve(event):
@@ -176,17 +218,16 @@ async def reject(event):
         if orig and 'r' in flags.keys():
           await System.send_message(orig.group(1),f'Crime coefficient less than 100\nUser is not a target for enforcement action\nTrigger of dominator will be locked.\nReason: **{reason.split(" ", 1)[1].strip()}**', reply_to=int(orig.group(2)))
 
+
 help_plus = """
 Here is the help for **Main**:
-
 Commands:
-    `scan` - Reply to a message WITH reason to send a request to Inspectors/Sibyl for judgement  
+    `scan` - Reply to a message WITH reason to send a request to Inspectors/Sibyl for judgement
     `approve` - Approve a scan request (Only works in Sibyl System Base)
     `revert` or `revive` or `restore` - Ungban ID
     `qproof` - Get quick proof from database for given user id
     `proof` - Get message from proof id which is at the end of gban msg
     `reject` - Reject a scan request
-
 Flags:
     scan:
         `-f` - Force approve a scan. Using this with scan will auto approve it (Inspectors+)
@@ -196,7 +237,6 @@ Flags:
         `-or` - Overwrite reason. Use this to change scan reason.
     reject:
         `-r` - Reply to the scan message with reject reason.
-
 All commands can be used with ! or / or ? or .
 """
 
