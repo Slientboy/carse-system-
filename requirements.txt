@@ -1,4 +1,4 @@
-telethon
+telethon~=1.18.0
 aiohttp
 motor 
 heroku3
