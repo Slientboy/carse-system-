@@ -142,85 +142,129 @@ async def revive(event):
 @System.on(system_cmd(pattern=r"sibyl logs"))
 async def logs(event):
     await System.send_file(event.chat_id, "log.txt")
-        )
 
 
-@System.on(system_cmd(pattern=r'approve', allow_inspectors=True, force_reply = True))
+@System.on(system_cmd(pattern=r"approve", allow_inspectors=True, force_reply=True))
 async def approve(event):
-        replied = await event.get_reply_message()
-        match = re.match(r'\$SCAN', replied.text)
-        auto_match = re.search(r'\$AUTO(SCAN)?', replied.text)
-        me = await System.get_me()
-        if auto_match:
-            if replied.sender.id == me.id:
-                id = re.search(
-                    r"\*\*Scanned user:\*\* (\[\w+\]\(tg://user\?id=(\d+)\)|(\d+))",
-                    replied.text).group(2)
-                try:
-                     bot = (await System.get_entity(id)).bot
-                except:
-                     bot = False
-                reason = re.search('\*\*Reason:\*\* (.*)', replied.text).group(1)
-                await System.gban(enforcer=me.id, target=id, reason = reason, msg_id=replied.id, auto=True, bot=bot)
-                return "OwO"
-        if match:
-            reply = replied.sender.id
-            sender = await event.get_sender()
-            flags, reason = seprate_flags(event.text)
-            # checks to not gban the Gbanner and find who is who
-            if reply == me.id:
-                list = re.findall(r'tg://user\?id=(\d+)', replied.text)
-                if 'or' in flags.keys():
-                    await replied.edit(re.sub('(\*\*)?(Scan)? ?Reason:(\*\*)? (`([^`]*)`|.*)', f'**Scan Reason:** {reason.split(" ", 1)[1].strip()}', replied.text))
-                    reason = reason.split(" ", 1)[1].strip()
-                else:
-                    reason = re.search(r"(\*\*)?(Scan)? ?Reason:(\*\*)? (`([^`]*)`|.*)", replied.text)
-                    reason = reason.group(5) if reason.group(5) else reason.group(4)
-                if len(list) > 1:
-                    id1 = list[0]
-                    id2 = list[1]
-                else:
-                    id1 = list[0]
-                    id2 = re.findall(r'(\d+)', replied.text)[1]
-                if id1 in ENFORCERS or SIBYL:
-                    enforcer = id1
-                    scam = id2
-                else:
-                    enforcer = id2
-                    scam = id1
-                try:
-                   bot = (await System.get_entity(scam)).bot
-                except:
-                   bot = False
-                await System.gban(enforcer, scam, reason, replied.id, sender, bot=bot)
-                orig = re.search(r"t.me/(\w+)/(\d+)", replied.text)
-                if orig:
-                  await System.send_message(orig.group(1), 'User is a target for enforcement action.\nEnforcement Mode: Lethal Eliminator', reply_to = int(orig.group(2)))
-
-@System.on(system_cmd(pattern=r'reject', allow_inspectors = True, force_reply = True))
-async def reject(event):
-        #print('Trying OmO')
-        replied = await event.get_reply_message()
-        me = await System.get_me()
-        if replied.from_id == me.id:
-            #print('Matching UwU')
-            match = re.match(r'\$(SCAN|AUTO(SCAN)?)', replied.text)
-            if match:
-                #print('Matched OmU')
-                id = replied.id
-                await System.edit_message(Sibyl_logs, id, reject_string)
-        orig = re.search(r"t.me/(\w+)/(\d+)", replied.text)
-        _orig = re.search(r"t.me/c/(\w+)/(\d+)", replied.text)
+    replied = await event.get_reply_message()
+    match = re.match(r"\$SCAN", replied.text)
+    auto_match = re.search(r"\$AUTO(SCAN)?", replied.text)
+    me = await System.get_me()
+    if auto_match:
+        if replied.sender.id == me.id:
+            id = re.search(
+                r"\*\*Scanned user:\*\* (\[\w+\]\(tg://user\?id=(\d+)\)|(\d+))",
+                replied.text,
+            ).group(2)
+            try:
+                message = re.search(
+                    "(\*\*)?Message:(\*\*)? (.*)", replied.text, re.DOTALL
+                ).group(3)
+            except:
+                message = None
+            try:
+                bot = (await System.get_entity(id)).bot
+            except:
+                bot = False
+            reason = re.search("\*\*Reason:\*\* (.*)", replied.text).group(1)
+            await System.gban(
+                enforcer=me.id,
+                target=id,
+                reason=reason,
+                msg_id=replied.id,
+                auto=True,
+                bot=bot,
+                message=message,
+            )
+            return "OwO"
+    if match:
+        reply = replied.sender.id
+        sender = await event.get_sender()
         flags, reason = seprate_flags(event.text)
-        if _orig and 'r' in flags.keys():
-          await System.send_message(int(_orig.group(1)), f'Crime coefficient less than 100\nUser is not a target for enforcement action\nTrigger of dominator will be locked.\nReason: **{reason.split(" ", 1)[1].strip()}**', reply_to = int(_orig.group(2)))
-          return
-        if orig and 'r' in flags.keys():
-          await System.send_message(orig.group(1),f'Crime coefficient less than 100\nUser is not a target for enforcement action\nTrigger of dominator will be locked.\nReason: **{reason.split(" ", 1)[1].strip()}**', reply_to=int(orig.group(2)))
+        # checks to not gban the Gbanner and find who is who
+        if reply == me.id:
+            list = re.findall(r"tg://user\?id=(\d+)", replied.text)
+            if "or" in flags.keys():
+                await replied.edit(
+                    re.sub(
+                        "(\*\*)?(Scan)? ?Reason:(\*\*)? (`([^`]*)`|.*)",
+                        f'**Scan Reason:** {reason.split(" ", 1)[1].strip()}',
+                        replied.text,
+                    )
+                )
+                reason = reason.split(" ", 1)[1].strip()
+            else:
+                reason = re.search(
+                    r"(\*\*)?(Scan)? ?Reason:(\*\*)? (`([^`]*)`|.*)", replied.text
+                )
+                reason = reason.group(5) if reason.group(5) else reason.group(4)
+            if len(list) > 1:
+                id1 = list[0]
+                id2 = list[1]
+            else:
+                id1 = list[0]
+                id2 = re.findall(r"(\d+)", replied.text)[1]
+            if id1 in ENFORCERS or SIBYL:
+                enforcer = id1
+                scam = id2
+            else:
+                enforcer = id2
+                scam = id1
+            try:
+                bot = (await System.get_entity(scam)).bot
+            except:
+                bot = False
+            try:
+                message = re.search(
+                    "(\*\*)?Target Message:(\*\*)? (.*)", replied.text, re.DOTALL
+                ).group(3)
+            except:
+                message = None
+            await System.gban(
+                enforcer, scam, reason, replied.id, sender, bot=bot, message=message
+            )
+            orig = re.search(r"t.me/(\w+)/(\d+)", replied.text)
+            if orig:
+                await System.send_message(
+                    orig.group(1),
+                    "User is a target for enforcement action.\nEnforcement Mode: Lethal Eliminator",
+                    reply_to=int(orig.group(2)),
+                )
+
+
+@System.on(system_cmd(pattern=r"reject", allow_inspectors=True, force_reply=True))
+async def reject(event):
+    # print('Trying OmO')
+    replied = await event.get_reply_message()
+    me = await System.get_me()
+    if replied.from_id.user_id == me.id:
+        # print('Matching UwU')
+        match = re.match(r"\$(SCAN|AUTO(SCAN)?)", replied.text)
+        if match:
+            # print('Matched OmU')
+            id = replied.id
+            await System.edit_message(Sibyl_logs, id, reject_string)
+    orig = re.search(r"t.me/(\w+)/(\d+)", replied.text)
+    _orig = re.search(r"t.me/c/(\w+)/(\d+)", replied.text)
+    flags, reason = seprate_flags(event.text)
+    if _orig and "r" in flags.keys():
+        await System.send_message(
+            int(_orig.group(1)),
+            f'Crime coefficient less than 100\nUser is not a target for enforcement action\nTrigger of dominator will be locked.\nReason: **{reason.split(" ", 1)[1].strip()}**',
+            reply_to=int(_orig.group(2)),
+        )
+        return
+    if orig and "r" in flags.keys():
+        await System.send_message(
+            orig.group(1),
+            f'Crime coefficient less than 100\nUser is not a target for enforcement action\nTrigger of dominator will be locked.\nReason: **{reason.split(" ", 1)[1].strip()}**',
+            reply_to=int(orig.group(2)),
+        )
 
 
 help_plus = """
 Here is the help for **Main**:
+
 Commands:
     `scan` - Reply to a message WITH reason to send a request to Inspectors/Sibyl for judgement
     `approve` - Approve a scan request (Only works in Sibyl System Base)
@@ -228,6 +272,7 @@ Commands:
     `qproof` - Get quick proof from database for given user id
     `proof` - Get message from proof id which is at the end of gban msg
     `reject` - Reject a scan request
+
 Flags:
     scan:
         `-f` - Force approve a scan. Using this with scan will auto approve it (Inspectors+)
@@ -237,6 +282,7 @@ Flags:
         `-or` - Overwrite reason. Use this to change scan reason.
     reject:
         `-r` - Reply to the scan message with reject reason.
+
 All commands can be used with ! or / or ? or .
 """
 
